@@ -131,3 +131,25 @@ Infrastructure Layer → DB, Payment, Auth, Email, External APIs
 - SQL Server Management Studio (SSMS)
 - Razorpay/PhonePe developer account (for testing UPI)
 
+
+****##Covering things **
+
+🔹 Core Commerce Flows
+Users, products, orders, carts, wishlists, payments, addresses, etc.
+
+🔹 Admin & Role Management
+Super admin, category admin, RBAC (Role-Based Access Control)
+
+🔹 Behavioral Analytics
+Search history, product views, abandoned carts, product analytics
+
+🔹 Customer Experience
+Reviews, multiple addresses, refunds, help desk, loyalty/gift cards (if added later)
+
+🔹 Payments & Security
+UPI, payment attempts, refunds, logs, optional 2FA
+
+🔹 Scalability Readiness
+Warehousing, scheduled tasks, marketing campaigns, tax & invoices
+
+
