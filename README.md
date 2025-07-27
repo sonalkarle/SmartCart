@@ -132,7 +132,7 @@ Infrastructure Layer → DB, Payment, Auth, Email, External APIs
 - Razorpay/PhonePe developer account (for testing UPI)
 
 
-****##Covering things **
+### Covering Things in table 
 
 🔹 Core Commerce Flows
 Users, products, orders, carts, wishlists, payments, addresses, etc.
