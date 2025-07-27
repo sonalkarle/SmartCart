@@ -1,0 +1,264 @@
+CREATE TABLE Users (
+  user_id INT PRIMARY KEY IDENTITY,
+  name NVARCHAR(100),
+  email NVARCHAR(100) UNIQUE,
+  password_hash NVARCHAR(255),
+  phone NVARCHAR(20),
+  is_active BIT,
+  created_at DATETIME DEFAULT GETDATE()
+);
+
+CREATE TABLE Roles (
+  role_id INT PRIMARY KEY IDENTITY,
+  role_name NVARCHAR(50) UNIQUE
+);
+
+CREATE TABLE UserRoles (
+  user_role_id INT PRIMARY KEY IDENTITY,
+  user_id INT FOREIGN KEY REFERENCES Users(user_id),
+  role_id INT FOREIGN KEY REFERENCES Roles(role_id)
+);
+
+CREATE TABLE UserAddresses (
+  address_id INT PRIMARY KEY IDENTITY,
+  user_id INT FOREIGN KEY REFERENCES Users(user_id),
+  address_line1 NVARCHAR(255),
+  address_line2 NVARCHAR(255),
+  city NVARCHAR(100),
+  state NVARCHAR(100),
+  country NVARCHAR(100),
+  zip_code NVARCHAR(20),
+  is_default BIT
+);
+
+CREATE TABLE TwoFactorAuth (
+  twofa_id INT PRIMARY KEY IDENTITY,
+  user_id INT FOREIGN KEY REFERENCES Users(user_id),
+  otp_code NVARCHAR(10),
+  expires_at DATETIME,
+  is_used BIT,
+  method NVARCHAR(50)
+);
+CREATE TABLE Admins (
+  admin_id INT PRIMARY KEY IDENTITY,
+  user_id INT FOREIGN KEY REFERENCES Users(user_id),
+  is_super_admin BIT DEFAULT 0
+);
+
+CREATE TABLE Categories (
+  category_id INT PRIMARY KEY IDENTITY,
+  name NVARCHAR(100),
+  description NVARCHAR(255),
+  parent_category_id INT NULL
+);
+
+CREATE TABLE AdminCategories (
+  admin_category_id INT PRIMARY KEY IDENTITY,
+  admin_id INT FOREIGN KEY REFERENCES Admins(admin_id),
+  category_id INT FOREIGN KEY REFERENCES Categories(category_id)
+);
+CREATE TABLE Products (
+  product_id INT PRIMARY KEY IDENTITY,
+  name NVARCHAR(100),
+  description NVARCHAR(MAX),
+  price DECIMAL(10, 2),
+  stock_quantity INT,
+  category_id INT FOREIGN KEY REFERENCES Categories(category_id),
+  created_at DATETIME DEFAULT GETDATE()
+);
+
+CREATE TABLE ProductImages (
+  image_id INT PRIMARY KEY IDENTITY,
+  product_id INT FOREIGN KEY REFERENCES Products(product_id),
+  image_url NVARCHAR(255),
+  is_primary BIT
+);
+
+CREATE TABLE ProductVariants (
+  variant_id INT PRIMARY KEY IDENTITY,
+  product_id INT FOREIGN KEY REFERENCES Products(product_id),
+  size NVARCHAR(50),
+  color NVARCHAR(50),
+  additional_price DECIMAL(10,2)
+);
+
+CREATE TABLE Inventory (
+  inventory_id INT PRIMARY KEY IDENTITY,
+  product_id INT FOREIGN KEY REFERENCES Products(product_id),
+  quantity INT,
+  location NVARCHAR(100)
+);
+CREATE TABLE Orders (
+  order_id INT PRIMARY KEY IDENTITY,
+  user_id INT FOREIGN KEY REFERENCES Users(user_id),
+  order_date DATETIME DEFAULT GETDATE(),
+  status NVARCHAR(50),
+  total_amount DECIMAL(10, 2)
+);
+
+CREATE TABLE OrderItems (
+  order_item_id INT PRIMARY KEY IDENTITY,
+  order_id INT FOREIGN KEY REFERENCES Orders(order_id),
+  product_id INT FOREIGN KEY REFERENCES Products(product_id),
+  quantity INT,
+  price DECIMAL(10, 2)
+);
+
+CREATE TABLE ShippingDetails (
+  shipping_id INT PRIMARY KEY IDENTITY,
+  order_id INT FOREIGN KEY REFERENCES Orders(order_id),
+  address_id INT FOREIGN KEY REFERENCES UserAddresses(address_id),
+  shipped_date DATETIME,
+  tracking_number NVARCHAR(100),
+  carrier NVARCHAR(100)
+);
+
+CREATE TABLE BillingDetails (
+  billing_id INT PRIMARY KEY IDENTITY,
+  order_id INT FOREIGN KEY REFERENCES Orders(order_id),
+  address_id INT FOREIGN KEY REFERENCES UserAddresses(address_id),
+  billed_date DATETIME,
+  billing_amount DECIMAL(10,2)
+);
+CREATE TABLE Payments (
+  payment_id INT PRIMARY KEY IDENTITY,
+  order_id INT FOREIGN KEY REFERENCES Orders(order_id),
+  payment_date DATETIME,
+  payment_method NVARCHAR(50),
+  payment_status NVARCHAR(50),
+  amount DECIMAL(10, 2)
+);
+
+CREATE TABLE UPI_Details (
+  upi_id INT PRIMARY KEY IDENTITY,
+  payment_id INT FOREIGN KEY REFERENCES Payments(payment_id),
+  upi_id_value NVARCHAR(100),
+  transaction_reference NVARCHAR(100)
+);
+
+CREATE TABLE PaymentGatewayResponses (
+  response_id INT PRIMARY KEY IDENTITY,
+  payment_id INT FOREIGN KEY REFERENCES Payments(payment_id),
+  gateway_name NVARCHAR(50),
+  response_data NVARCHAR(MAX),
+  status_code NVARCHAR(20)
+);
+
+CREATE TABLE Refunds (
+  refund_id INT PRIMARY KEY IDENTITY,
+  payment_id INT FOREIGN KEY REFERENCES Payments(payment_id),
+  refund_amount DECIMAL(10,2),
+  refund_date DATETIME,
+  reason NVARCHAR(255)
+);
+
+CREATE TABLE PaymentAttempts (
+  attempt_id INT PRIMARY KEY IDENTITY,
+  user_id INT FOREIGN KEY REFERENCES Users(user_id),
+  attempt_time DATETIME,
+  status NVARCHAR(50),
+  notes NVARCHAR(255)
+);
+CREATE TABLE ProductReviews (
+  review_id INT PRIMARY KEY IDENTITY,
+  product_id INT FOREIGN KEY REFERENCES Products(product_id),
+  user_id INT FOREIGN KEY REFERENCES Users(user_id),
+  rating INT,
+  comment NVARCHAR(MAX),
+  review_date DATETIME DEFAULT GETDATE()
+);
+
+CREATE TABLE Coupons (
+  coupon_id INT PRIMARY KEY IDENTITY,
+  code NVARCHAR(50),
+  discount_percent DECIMAL(5,2),
+  expiry_date DATETIME
+);
+
+CREATE TABLE ReturnRequests (
+  return_id INT PRIMARY KEY IDENTITY,
+  order_item_id INT FOREIGN KEY REFERENCES OrderItems(order_item_id),
+  reason NVARCHAR(255),
+  request_date DATETIME,
+  status NVARCHAR(50)
+);
+CREATE TABLE SearchHistory (
+  search_id INT PRIMARY KEY IDENTITY,
+  user_id INT FOREIGN KEY REFERENCES Users(user_id),
+  search_term NVARCHAR(255),
+  searched_at DATETIME DEFAULT GETDATE()
+);
+
+CREATE TABLE UserInterests (
+  interest_id INT PRIMARY KEY IDENTITY,
+  user_id INT FOREIGN KEY REFERENCES Users(user_id),
+  category_id INT FOREIGN KEY REFERENCES Categories(category_id),
+  score INT
+);
+
+CREATE TABLE Notifications (
+  notification_id INT PRIMARY KEY IDENTITY,
+  user_id INT FOREIGN KEY REFERENCES Users(user_id),
+  title NVARCHAR(100),
+  message NVARCHAR(255),
+  is_read BIT DEFAULT 0,
+  sent_at DATETIME DEFAULT GETDATE()
+);
+
+CREATE TABLE Analytics (
+  analytics_id INT PRIMARY KEY IDENTITY,
+  event_name NVARCHAR(100),
+  user_id INT FOREIGN KEY REFERENCES Users(user_id),
+  event_time DATETIME,
+  event_data NVARCHAR(MAX)
+);
+
+CREATE TABLE Subscriptions (
+  subscription_id INT PRIMARY KEY IDENTITY,
+  user_id INT FOREIGN KEY REFERENCES Users(user_id),
+  plan_name NVARCHAR(100),
+  start_date DATETIME,
+  end_date DATETIME
+);
+-- ====================
+-- Wishlist Tables
+-- ====================
+
+CREATE TABLE Wishlists (
+    WishlistId INT PRIMARY KEY IDENTITY(1,1),
+    UserId INT NOT NULL,
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    CONSTRAINT FK_Wishlist_User FOREIGN KEY (UserId) REFERENCES Users(UserId)
+);
+
+CREATE TABLE WishlistItems (
+    WishlistItemId INT PRIMARY KEY IDENTITY(1,1),
+    WishlistId INT NOT NULL,
+    ProductId INT NOT NULL,
+    Quantity INT CHECK (Quantity >= 1),
+    AddedAt DATETIME DEFAULT GETDATE(),
+    CONSTRAINT FK_WishlistItems_Wishlist FOREIGN KEY (WishlistId) REFERENCES Wishlists(WishlistId),
+    CONSTRAINT FK_WishlistItems_Product FOREIGN KEY (ProductId) REFERENCES Products(ProductId)
+);
+
+-- ====================
+-- Cart Tables
+-- ====================
+
+CREATE TABLE Carts (
+    CartId INT PRIMARY KEY IDENTITY(1,1),
+    UserId INT NOT NULL,
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    IsActive BIT DEFAULT 1,
+    CONSTRAINT FK_Cart_User FOREIGN KEY (UserId) REFERENCES Users(UserId)
+);
+
+CREATE TABLE CartItems (
+    CartItemId INT PRIMARY KEY IDENTITY(1,1),
+    CartId INT NOT NULL,
+    ProductId INT NOT NULL,
+    Quantity INT CHECK (Quantity >= 1),
+    AddedAt DATETIME DEFAULT GETDATE(),
+    CONSTRAINT FK_CartItems_Cart FOREIGN KEY (CartId) REFERENCES Carts(CartId),
+    CONSTRAINT FK_CartItems_Product FOREIGN KEY (ProductId) REFERENCES Products(ProductId)
+);
