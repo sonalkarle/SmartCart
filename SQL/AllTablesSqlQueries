@@ -1,264 +1,446 @@
+--------------------------------------------------------
+User 
+--------------------------------------------------------
+-- 1. Users
 CREATE TABLE Users (
-  user_id INT PRIMARY KEY IDENTITY,
-  name NVARCHAR(100),
-  email NVARCHAR(100) UNIQUE,
-  password_hash NVARCHAR(255),
-  phone NVARCHAR(20),
-  is_active BIT,
-  created_at DATETIME DEFAULT GETDATE()
+  UserId INT PRIMARY KEY IDENTITY(1,1),
+  FullName NVARCHAR(100),
+  Email NVARCHAR(100) UNIQUE,
+  PasswordHash NVARCHAR(255),
+  PhoneNumber NVARCHAR(15),
+  DateOfBirth DATE,
+  CreatedAt DATETIME DEFAULT GETDATE(),
+  IsActive BIT DEFAULT 1
 );
 
+-- 2. Roles
 CREATE TABLE Roles (
-  role_id INT PRIMARY KEY IDENTITY,
-  role_name NVARCHAR(50) UNIQUE
+  RoleId INT PRIMARY KEY IDENTITY(1,1),
+  RoleName NVARCHAR(50) UNIQUE
 );
 
+-- 3. UserRoles
 CREATE TABLE UserRoles (
-  user_role_id INT PRIMARY KEY IDENTITY,
-  user_id INT FOREIGN KEY REFERENCES Users(user_id),
-  role_id INT FOREIGN KEY REFERENCES Roles(role_id)
+  UserRoleId INT PRIMARY KEY IDENTITY(1,1),
+  UserId INT,
+  RoleId INT,
+  FOREIGN KEY (UserId) REFERENCES Users(UserId),
+  FOREIGN KEY (RoleId) REFERENCES Roles(RoleId)
 );
 
-CREATE TABLE UserAddresses (
-  address_id INT PRIMARY KEY IDENTITY,
-  user_id INT FOREIGN KEY REFERENCES Users(user_id),
-  address_line1 NVARCHAR(255),
-  address_line2 NVARCHAR(255),
-  city NVARCHAR(100),
-  state NVARCHAR(100),
-  country NVARCHAR(100),
-  zip_code NVARCHAR(20),
-  is_default BIT
-);
-
-CREATE TABLE TwoFactorAuth (
-  twofa_id INT PRIMARY KEY IDENTITY,
-  user_id INT FOREIGN KEY REFERENCES Users(user_id),
-  otp_code NVARCHAR(10),
-  expires_at DATETIME,
-  is_used BIT,
-  method NVARCHAR(50)
-);
+-- 4. Admins
 CREATE TABLE Admins (
-  admin_id INT PRIMARY KEY IDENTITY,
-  user_id INT FOREIGN KEY REFERENCES Users(user_id),
-  is_super_admin BIT DEFAULT 0
+  AdminId INT PRIMARY KEY IDENTITY(1,1),
+  UserId INT,
+  AdminType NVARCHAR(50), -- Super Admin, Category Admin
+  FOREIGN KEY (UserId) REFERENCES Users(UserId)
 );
 
+-- 5. Buyers
+CREATE TABLE Buyers (
+  BuyerId INT PRIMARY KEY IDENTITY(1,1),
+  UserId INT,
+  LoyaltyPoints INT DEFAULT 0,
+  FOREIGN KEY (UserId) REFERENCES Users(UserId)
+);
+
+-- 6. UserAddresses
+CREATE TABLE UserAddresses (
+  AddressId INT PRIMARY KEY IDENTITY(1,1),
+  UserId INT,
+  AddressLine1 NVARCHAR(255),
+  AddressLine2 NVARCHAR(255),
+  City NVARCHAR(100),
+  State NVARCHAR(100),
+  PostalCode NVARCHAR(20),
+  Country NVARCHAR(100),
+  IsPrimary BIT DEFAULT 0,
+  FOREIGN KEY (UserId) REFERENCES Users(UserId)
+);
+--------------------------------------------------------
+Product & Category Management
+--------------------------------------------------------
+-- 7. Categories
 CREATE TABLE Categories (
-  category_id INT PRIMARY KEY IDENTITY,
-  name NVARCHAR(100),
-  description NVARCHAR(255),
-  parent_category_id INT NULL
+  CategoryId INT PRIMARY KEY IDENTITY(1,1),
+  CategoryName NVARCHAR(100) UNIQUE,
+  Description NVARCHAR(255),
+  IsActive BIT DEFAULT 1
 );
 
-CREATE TABLE AdminCategories (
-  admin_category_id INT PRIMARY KEY IDENTITY,
-  admin_id INT FOREIGN KEY REFERENCES Admins(admin_id),
-  category_id INT FOREIGN KEY REFERENCES Categories(category_id)
+-- 8. SubCategories
+CREATE TABLE SubCategories (
+  SubCategoryId INT PRIMARY KEY IDENTITY(1,1),
+  CategoryId INT,
+  SubCategoryName NVARCHAR(100),
+  Description NVARCHAR(255),
+  FOREIGN KEY (CategoryId) REFERENCES Categories(CategoryId)
 );
+
+-- 9. Products
 CREATE TABLE Products (
-  product_id INT PRIMARY KEY IDENTITY,
-  name NVARCHAR(100),
-  description NVARCHAR(MAX),
-  price DECIMAL(10, 2),
-  stock_quantity INT,
-  category_id INT FOREIGN KEY REFERENCES Categories(category_id),
-  created_at DATETIME DEFAULT GETDATE()
+  ProductId INT PRIMARY KEY IDENTITY(1,1),
+  SubCategoryId INT,
+  ProductName NVARCHAR(100),
+  Description TEXT,
+  Price DECIMAL(10,2),
+  Stock INT,
+  CreatedAt DATETIME DEFAULT GETDATE(),
+  IsActive BIT DEFAULT 1,
+  FOREIGN KEY (SubCategoryId) REFERENCES SubCategories(SubCategoryId)
 );
 
+-- 10. ProductImages
 CREATE TABLE ProductImages (
-  image_id INT PRIMARY KEY IDENTITY,
-  product_id INT FOREIGN KEY REFERENCES Products(product_id),
-  image_url NVARCHAR(255),
-  is_primary BIT
+  ImageId INT PRIMARY KEY IDENTITY(1,1),
+  ProductId INT,
+  ImageUrl NVARCHAR(255),
+  IsPrimary BIT DEFAULT 0,
+  FOREIGN KEY (ProductId) REFERENCES Products(ProductId)
 );
 
+-- 11. ProductVariants
 CREATE TABLE ProductVariants (
-  variant_id INT PRIMARY KEY IDENTITY,
-  product_id INT FOREIGN KEY REFERENCES Products(product_id),
-  size NVARCHAR(50),
-  color NVARCHAR(50),
-  additional_price DECIMAL(10,2)
+  VariantId INT PRIMARY KEY IDENTITY(1,1),
+  ProductId INT,
+  VariantName NVARCHAR(100), -- e.g., Size: M, Color: Red
+  AdditionalPrice DECIMAL(10,2),
+  FOREIGN KEY (ProductId) REFERENCES Products(ProductId)
 );
 
-CREATE TABLE Inventory (
-  inventory_id INT PRIMARY KEY IDENTITY,
-  product_id INT FOREIGN KEY REFERENCES Products(product_id),
-  quantity INT,
-  location NVARCHAR(100)
+-- 12. ProductTags
+CREATE TABLE ProductTags (
+  ProductTagId INT PRIMARY KEY IDENTITY(1,1),
+  ProductId INT,
+  TagName NVARCHAR(50),
+  FOREIGN KEY (ProductId) REFERENCES Products(ProductId)
 );
-CREATE TABLE Orders (
-  order_id INT PRIMARY KEY IDENTITY,
-  user_id INT FOREIGN KEY REFERENCES Users(user_id),
-  order_date DATETIME DEFAULT GETDATE(),
-  status NVARCHAR(50),
-  total_amount DECIMAL(10, 2)
-);
-
-CREATE TABLE OrderItems (
-  order_item_id INT PRIMARY KEY IDENTITY,
-  order_id INT FOREIGN KEY REFERENCES Orders(order_id),
-  product_id INT FOREIGN KEY REFERENCES Products(product_id),
-  quantity INT,
-  price DECIMAL(10, 2)
+--------------------------------------------------------
+Cart & Wishlist Management
+--------------------------------------------------------
+-- 13. Wishlist
+CREATE TABLE Wishlist (
+  WishlistId INT PRIMARY KEY IDENTITY(1,1),
+  UserId INT NOT NULL,
+  CreatedAt DATETIME DEFAULT GETDATE(),
+  FOREIGN KEY (UserId) REFERENCES Users(UserId)
 );
 
-CREATE TABLE ShippingDetails (
-  shipping_id INT PRIMARY KEY IDENTITY,
-  order_id INT FOREIGN KEY REFERENCES Orders(order_id),
-  address_id INT FOREIGN KEY REFERENCES UserAddresses(address_id),
-  shipped_date DATETIME,
-  tracking_number NVARCHAR(100),
-  carrier NVARCHAR(100)
-);
-
-CREATE TABLE BillingDetails (
-  billing_id INT PRIMARY KEY IDENTITY,
-  order_id INT FOREIGN KEY REFERENCES Orders(order_id),
-  address_id INT FOREIGN KEY REFERENCES UserAddresses(address_id),
-  billed_date DATETIME,
-  billing_amount DECIMAL(10,2)
-);
-CREATE TABLE Payments (
-  payment_id INT PRIMARY KEY IDENTITY,
-  order_id INT FOREIGN KEY REFERENCES Orders(order_id),
-  payment_date DATETIME,
-  payment_method NVARCHAR(50),
-  payment_status NVARCHAR(50),
-  amount DECIMAL(10, 2)
-);
-
-CREATE TABLE UPI_Details (
-  upi_id INT PRIMARY KEY IDENTITY,
-  payment_id INT FOREIGN KEY REFERENCES Payments(payment_id),
-  upi_id_value NVARCHAR(100),
-  transaction_reference NVARCHAR(100)
-);
-
-CREATE TABLE PaymentGatewayResponses (
-  response_id INT PRIMARY KEY IDENTITY,
-  payment_id INT FOREIGN KEY REFERENCES Payments(payment_id),
-  gateway_name NVARCHAR(50),
-  response_data NVARCHAR(MAX),
-  status_code NVARCHAR(20)
-);
-
-CREATE TABLE Refunds (
-  refund_id INT PRIMARY KEY IDENTITY,
-  payment_id INT FOREIGN KEY REFERENCES Payments(payment_id),
-  refund_amount DECIMAL(10,2),
-  refund_date DATETIME,
-  reason NVARCHAR(255)
-);
-
-CREATE TABLE PaymentAttempts (
-  attempt_id INT PRIMARY KEY IDENTITY,
-  user_id INT FOREIGN KEY REFERENCES Users(user_id),
-  attempt_time DATETIME,
-  status NVARCHAR(50),
-  notes NVARCHAR(255)
-);
-CREATE TABLE ProductReviews (
-  review_id INT PRIMARY KEY IDENTITY,
-  product_id INT FOREIGN KEY REFERENCES Products(product_id),
-  user_id INT FOREIGN KEY REFERENCES Users(user_id),
-  rating INT,
-  comment NVARCHAR(MAX),
-  review_date DATETIME DEFAULT GETDATE()
-);
-
-CREATE TABLE Coupons (
-  coupon_id INT PRIMARY KEY IDENTITY,
-  code NVARCHAR(50),
-  discount_percent DECIMAL(5,2),
-  expiry_date DATETIME
-);
-
-CREATE TABLE ReturnRequests (
-  return_id INT PRIMARY KEY IDENTITY,
-  order_item_id INT FOREIGN KEY REFERENCES OrderItems(order_item_id),
-  reason NVARCHAR(255),
-  request_date DATETIME,
-  status NVARCHAR(50)
-);
-CREATE TABLE SearchHistory (
-  search_id INT PRIMARY KEY IDENTITY,
-  user_id INT FOREIGN KEY REFERENCES Users(user_id),
-  search_term NVARCHAR(255),
-  searched_at DATETIME DEFAULT GETDATE()
-);
-
-CREATE TABLE UserInterests (
-  interest_id INT PRIMARY KEY IDENTITY,
-  user_id INT FOREIGN KEY REFERENCES Users(user_id),
-  category_id INT FOREIGN KEY REFERENCES Categories(category_id),
-  score INT
-);
-
-CREATE TABLE Notifications (
-  notification_id INT PRIMARY KEY IDENTITY,
-  user_id INT FOREIGN KEY REFERENCES Users(user_id),
-  title NVARCHAR(100),
-  message NVARCHAR(255),
-  is_read BIT DEFAULT 0,
-  sent_at DATETIME DEFAULT GETDATE()
-);
-
-CREATE TABLE Analytics (
-  analytics_id INT PRIMARY KEY IDENTITY,
-  event_name NVARCHAR(100),
-  user_id INT FOREIGN KEY REFERENCES Users(user_id),
-  event_time DATETIME,
-  event_data NVARCHAR(MAX)
-);
-
-CREATE TABLE Subscriptions (
-  subscription_id INT PRIMARY KEY IDENTITY,
-  user_id INT FOREIGN KEY REFERENCES Users(user_id),
-  plan_name NVARCHAR(100),
-  start_date DATETIME,
-  end_date DATETIME
-);
--- ====================
--- Wishlist Tables
--- ====================
-
-CREATE TABLE Wishlists (
-    WishlistId INT PRIMARY KEY IDENTITY(1,1),
-    UserId INT NOT NULL,
-    CreatedAt DATETIME DEFAULT GETDATE(),
-    CONSTRAINT FK_Wishlist_User FOREIGN KEY (UserId) REFERENCES Users(UserId)
-);
-
+-- 14. WishlistItems
 CREATE TABLE WishlistItems (
-    WishlistItemId INT PRIMARY KEY IDENTITY(1,1),
-    WishlistId INT NOT NULL,
-    ProductId INT NOT NULL,
-    Quantity INT CHECK (Quantity >= 1),
-    AddedAt DATETIME DEFAULT GETDATE(),
-    CONSTRAINT FK_WishlistItems_Wishlist FOREIGN KEY (WishlistId) REFERENCES Wishlists(WishlistId),
-    CONSTRAINT FK_WishlistItems_Product FOREIGN KEY (ProductId) REFERENCES Products(ProductId)
+  WishlistItemId INT PRIMARY KEY IDENTITY(1,1),
+  WishlistId INT,
+  ProductId INT,
+  Quantity INT DEFAULT 1,
+  FOREIGN KEY (WishlistId) REFERENCES Wishlist(WishlistId),
+  FOREIGN KEY (ProductId) REFERENCES Products(ProductId)
 );
 
--- ====================
--- Cart Tables
--- ====================
-
-CREATE TABLE Carts (
-    CartId INT PRIMARY KEY IDENTITY(1,1),
-    UserId INT NOT NULL,
-    CreatedAt DATETIME DEFAULT GETDATE(),
-    IsActive BIT DEFAULT 1,
-    CONSTRAINT FK_Cart_User FOREIGN KEY (UserId) REFERENCES Users(UserId)
+-- 15. Cart
+CREATE TABLE Cart (
+  CartId INT PRIMARY KEY IDENTITY(1,1),
+  UserId INT NOT NULL,
+  CreatedAt DATETIME DEFAULT GETDATE(),
+  FOREIGN KEY (UserId) REFERENCES Users(UserId)
 );
 
+-- 16. CartItems
 CREATE TABLE CartItems (
-    CartItemId INT PRIMARY KEY IDENTITY(1,1),
-    CartId INT NOT NULL,
-    ProductId INT NOT NULL,
-    Quantity INT CHECK (Quantity >= 1),
-    AddedAt DATETIME DEFAULT GETDATE(),
-    CONSTRAINT FK_CartItems_Cart FOREIGN KEY (CartId) REFERENCES Carts(CartId),
-    CONSTRAINT FK_CartItems_Product FOREIGN KEY (ProductId) REFERENCES Products(ProductId)
+  CartItemId INT PRIMARY KEY IDENTITY(1,1),
+  CartId INT,
+  ProductId INT,
+  Quantity INT,
+  FOREIGN KEY (CartId) REFERENCES Cart(CartId),
+  FOREIGN KEY (ProductId) REFERENCES Products(ProductId)
 );
+--------------------------------------------------------
+Orders & Order Management
+--------------------------------------------------------
+-- 17. Orders
+CREATE TABLE Orders (
+  OrderId INT PRIMARY KEY IDENTITY(1,1),
+  UserId INT,
+  OrderDate DATETIME DEFAULT GETDATE(),
+  StatusId INT,
+  TotalAmount DECIMAL(10,2),
+  PaymentMethod NVARCHAR(50),
+  FOREIGN KEY (UserId) REFERENCES Users(UserId),
+  FOREIGN KEY (StatusId) REFERENCES OrderStatus(StatusId)
+);
+
+-- 18. OrderItems
+CREATE TABLE OrderItems (
+  OrderItemId INT PRIMARY KEY IDENTITY(1,1),
+  OrderId INT,
+  ProductId INT,
+  Quantity INT,
+  PriceAtPurchase DECIMAL(10,2),
+  FOREIGN KEY (OrderId) REFERENCES Orders(OrderId),
+  FOREIGN KEY (ProductId) REFERENCES Products(ProductId)
+);
+
+-- 19. OrderStatus
+CREATE TABLE OrderStatus (
+  StatusId INT PRIMARY KEY IDENTITY(1,1),
+  StatusName NVARCHAR(50) -- e.g., Pending, Processing, Shipped, Delivered, Cancelled
+);
+
+-- 20. ShippingAddress
+CREATE TABLE ShippingAddress (
+  ShippingAddressId INT PRIMARY KEY IDENTITY(1,1),
+  OrderId INT,
+  AddressLine1 NVARCHAR(255),
+  AddressLine2 NVARCHAR(255),
+  City NVARCHAR(100),
+  State NVARCHAR(100),
+  Country NVARCHAR(100),
+  ZipCode NVARCHAR(20),
+  FOREIGN KEY (OrderId) REFERENCES Orders(OrderId)
+);
+
+-- 21. DeliveryTracking
+CREATE TABLE DeliveryTracking (
+  TrackingId INT PRIMARY KEY IDENTITY(1,1),
+  OrderId INT,
+  CourierService NVARCHAR(100),
+  TrackingNumber NVARCHAR(100),
+  EstimatedDeliveryDate DATE,
+  DeliveredDate DATE,
+  Status NVARCHAR(50),
+  FOREIGN KEY (OrderId) REFERENCES Orders(OrderId)
+);
+
+-- 22. Invoices
+CREATE TABLE Invoices (
+  InvoiceId INT PRIMARY KEY IDENTITY(1,1),
+  OrderId INT,
+  InvoiceDate DATETIME DEFAULT GETDATE(),
+  InvoicePdfUrl NVARCHAR(255),
+  FOREIGN KEY (OrderId) REFERENCES Orders(OrderId)
+);
+--------------------------------------------------------
+Payments & Transactions
+--------------------------------------------------------
+-- 23. Payments
+CREATE TABLE Payments (
+  PaymentId INT PRIMARY KEY IDENTITY(1,1),
+  OrderId INT,
+  UserId INT,
+  PaymentDate DATETIME DEFAULT GETDATE(),
+  Amount DECIMAL(10,2),
+  PaymentStatus NVARCHAR(50), -- e.g., Success, Failed, Pending
+  PaymentMethodId INT,
+  FOREIGN KEY (OrderId) REFERENCES Orders(OrderId),
+  FOREIGN KEY (UserId) REFERENCES Users(UserId),
+  FOREIGN KEY (PaymentMethodId) REFERENCES PaymentMethods(PaymentMethodId)
+);
+
+-- 24. PaymentMethods
+CREATE TABLE PaymentMethods (
+  PaymentMethodId INT PRIMARY KEY IDENTITY(1,1),
+  MethodName NVARCHAR(50) -- e.g., Credit Card, Debit Card, UPI, NetBanking
+);
+
+-- 25. UPITransactions
+CREATE TABLE UPITransactions (
+  UPITransactionId INT PRIMARY KEY IDENTITY(1,1),
+  PaymentId INT,
+  UPIId NVARCHAR(100),
+  UTR NVARCHAR(100),
+  FOREIGN KEY (PaymentId) REFERENCES Payments(PaymentId)
+);
+
+-- 26. Refunds
+CREATE TABLE Refunds (
+  RefundId INT PRIMARY KEY IDENTITY(1,1),
+  PaymentId INT,
+  RefundAmount DECIMAL(10,2),
+  RefundDate DATETIME DEFAULT GETDATE(),
+  Reason NVARCHAR(255),
+  FOREIGN KEY (PaymentId) REFERENCES Payments(PaymentId)
+);
+
+-- 27. TransactionsLog
+CREATE TABLE TransactionsLog (
+  TransactionLogId INT PRIMARY KEY IDENTITY(1,1),
+  PaymentId INT,
+  LogTime DATETIME DEFAULT GETDATE(),
+  Status NVARCHAR(50),
+  Message NVARCHAR(255),
+  FOREIGN KEY (PaymentId) REFERENCES Payments(PaymentId)
+);
+--------------------------------------------------------
+Admin & Role Management 
+--------------------------------------------------------
+-- 28. Roles
+CREATE TABLE Roles (
+  RoleId INT PRIMARY KEY IDENTITY(1,1),
+  RoleName NVARCHAR(50) -- Examples: SuperAdmin, CategoryAdmin, Buyer, Guest, etc.
+);
+
+-- 29. UserRoles
+CREATE TABLE UserRoles (
+  UserRoleId INT PRIMARY KEY IDENTITY(1,1),
+  UserId INT,
+  RoleId INT,
+  FOREIGN KEY (UserId) REFERENCES Users(UserId),
+  FOREIGN KEY (RoleId) REFERENCES Roles(RoleId)
+);
+
+-- 30. Admins
+CREATE TABLE Admins (
+  AdminId INT PRIMARY KEY IDENTITY(1,1),
+  UserId INT,
+  CreatedAt DATETIME DEFAULT GETDATE(),
+  FOREIGN KEY (UserId) REFERENCES Users(UserId)
+);
+
+-- 31. SuperAdmins
+CREATE TABLE SuperAdmins (
+  SuperAdminId INT PRIMARY KEY IDENTITY(1,1),
+  AdminId INT,
+  AssignedAt DATETIME DEFAULT GETDATE(),
+  FOREIGN KEY (AdminId) REFERENCES Admins(AdminId)
+);
+
+-- 32. CategoryAdmins
+CREATE TABLE CategoryAdmins (
+  CategoryAdminId INT PRIMARY KEY IDENTITY(1,1),
+  AdminId INT,
+  CategoryId INT,
+  AssignedAt DATETIME DEFAULT GETDATE(),
+  FOREIGN KEY (AdminId) REFERENCES Admins(AdminId),
+  FOREIGN KEY (CategoryId) REFERENCES Categories(CategoryId)
+);
+
+-- 33. RolePermissions
+CREATE TABLE RolePermissions (
+  RolePermissionId INT PRIMARY KEY IDENTITY(1,1),
+  RoleId INT,
+  Permission NVARCHAR(100), -- e.g., 'CanEditProduct', 'CanManageOrders'
+  FOREIGN KEY (RoleId) REFERENCES Roles(RoleId)
+);
+
+--------------------------------------------------------
+Search, Interest, and Analytics
+--------------------------------------------------------
+-- 34. SearchHistory
+CREATE TABLE SearchHistory (
+  SearchId INT PRIMARY KEY IDENTITY(1,1),
+  UserId INT,
+  SearchTerm NVARCHAR(255),
+  SearchedAt DATETIME DEFAULT GETDATE(),
+  FOREIGN KEY (UserId) REFERENCES Users(UserId)
+);
+
+-- 35. ProductViewHistory
+CREATE TABLE ProductViewHistory (
+  ViewId INT PRIMARY KEY IDENTITY(1,1),
+  UserId INT,
+  ProductId INT,
+  ViewedAt DATETIME DEFAULT GETDATE(),
+  FOREIGN KEY (UserId) REFERENCES Users(UserId),
+  FOREIGN KEY (ProductId) REFERENCES Products(ProductId)
+);
+
+-- 36. UserInterests
+CREATE TABLE UserInterests (
+  InterestId INT PRIMARY KEY IDENTITY(1,1),
+  UserId INT,
+  CategoryId INT,
+  InterestLevel INT DEFAULT 1, -- Scale from 1 to 10 maybe
+  LastUpdated DATETIME DEFAULT GETDATE(),
+  FOREIGN KEY (UserId) REFERENCES Users(UserId),
+  FOREIGN KEY (CategoryId) REFERENCES Categories(CategoryId)
+);
+
+-- 37. ProductRatings
+CREATE TABLE ProductRatings (
+  RatingId INT PRIMARY KEY IDENTITY(1,1),
+  UserId INT,
+  ProductId INT,
+  Rating INT CHECK (Rating BETWEEN 1 AND 5),
+  Review NVARCHAR(MAX),
+  RatedAt DATETIME DEFAULT GETDATE(),
+  FOREIGN KEY (UserId) REFERENCES Users(UserId),
+  FOREIGN KEY (ProductId) REFERENCES Products(ProductId)
+);
+
+-- 38. Feedback
+CREATE TABLE Feedback (
+  FeedbackId INT PRIMARY KEY IDENTITY(1,1),
+  UserId INT,
+  Message NVARCHAR(MAX),
+  SubmittedAt DATETIME DEFAULT GETDATE(),
+  FOREIGN KEY (UserId) REFERENCES Users(UserId)
+);
+--------------------------------------------------------
+ Delivery, Notifications, and Logs
+--------------------------------------------------------
+-- 39. ContactUsMessages
+CREATE TABLE ContactUsMessages (
+  MessageId INT PRIMARY KEY IDENTITY(1,1),
+  UserId INT NULL, -- Optional, in case user is logged in
+  Name NVARCHAR(100),
+  Email NVARCHAR(100),
+  Subject NVARCHAR(200),
+  Message TEXT,
+  CreatedAt DATETIME DEFAULT GETDATE(),
+  FOREIGN KEY (UserId) REFERENCES Users(UserId)
+);
+
+-- 40. SystemLogs
+CREATE TABLE SystemLogs (
+  LogId INT PRIMARY KEY IDENTITY(1,1),
+  Action NVARCHAR(255),
+  PerformedByUserId INT,
+  ModuleName NVARCHAR(100),
+  Timestamp DATETIME DEFAULT GETDATE(),
+  FOREIGN KEY (PerformedByUserId) REFERENCES Users(UserId)
+);
+
+-- 41. EmailTemplates
+CREATE TABLE EmailTemplates (
+  TemplateId INT PRIMARY KEY IDENTITY(1,1),
+  TemplateName NVARCHAR(100) UNIQUE,
+  Subject NVARCHAR(200),
+  Body TEXT,
+  CreatedAt DATETIME DEFAULT GETDATE()
+);
+
+-- 42. SMSLogs
+CREATE TABLE SMSLogs (
+  SMSLogId INT PRIMARY KEY IDENTITY(1,1),
+  UserId INT NULL, -- Optional
+  PhoneNumber NVARCHAR(20),
+  Message TEXT,
+  SentAt DATETIME DEFAULT GETDATE(),
+  Status NVARCHAR(50), -- Sent, Failed, Queued, etc.
+  FOREIGN KEY (UserId) REFERENCES Users(UserId)
+);
+
+-- 43. PushNotificationLogs
+CREATE TABLE PushNotificationLogs (
+  NotificationId INT PRIMARY KEY IDENTITY(1,1),
+  UserId INT,
+  Title NVARCHAR(200),
+  Message TEXT,
+  SentAt DATETIME DEFAULT GETDATE(),
+  Status NVARCHAR(50),
+  FOREIGN KEY (UserId) REFERENCES Users(UserId)
+);
+
+-- 44. EmailLogs
+CREATE TABLE EmailLogs (
+  EmailLogId INT PRIMARY KEY IDENTITY(1,1),
+  UserId INT,
+  TemplateId INT,
+  Email NVARCHAR(100),
+  Subject NVARCHAR(200),
+  Status NVARCHAR(50), -- Sent, Failed, etc.
+  SentAt DATETIME DEFAULT GETDATE(),
+  FOREIGN KEY (UserId) REFERENCES Users(UserId),
+  FOREIGN KEY (TemplateId) REFERENCES EmailTemplates(TemplateId)
+);
+
+
